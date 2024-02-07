@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Interface Name="Noleggi.Core.Services.IClienteRepository">
+    <Position X="6.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\IClienteRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Noleggi.Core.Services.IDataRepository&lt;T&gt;">
+    <Position X="6.75" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAEAACAAAAABAAAAAAAAAAAEAAAgAAAAAIAAAAIA=</HashCode>
+      <FileName>Services\IDataRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Noleggi.Core.Services.INoleggioRepository">
+    <Position X="2.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\INoleggioRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Noleggi.Core.Services.IPeriodicitaRepository">
+    <Position X="4.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\IPeriodicitaRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Noleggi.Core.Services.IPeriodicitaRisorsaRepository">
+    <Position X="9" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAgAAAAAAAAAAAgAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\IPeriodicitaRisorsaRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Noleggi.Core.Services.IRisorsaRepository">
+    <Position X="11.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\IRisorsaRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

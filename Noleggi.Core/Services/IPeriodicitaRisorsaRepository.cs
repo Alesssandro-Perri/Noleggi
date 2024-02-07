@@ -1,0 +1,15 @@
+﻿using Noleggi.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Noleggi.Core.Services
+{
+    public interface IPeriodicitaRisorsaRepository : IDataRepository<PeriodicitaRisorsa>
+    {
+        Task<IEnumerable<PeriodicitaRisorsa>> GetRisorsaAsync(int risorsaId);
+        Task InsertRisorsaAsync(int risorsaId, IPeriodicitaRepository pRepo);
+    }
+}

@@ -1,0 +1,75 @@
+﻿@page "/risorse"
+
+@inject IRisorsaRepository repoRisorsa
+@inject INoleggioRepository repoNoleggi
+@inject IJSRuntime js
+
+<h1 style="text-align: center"><span style="font-weight: bold;">RISORSE</span></h1>
+<hr style="height:4px;border-width:0;color:gray;background-color:gray" />
+<br />
+
+<a href="/risorse/create">
+    <RadzenButton Text="NUOVA RISORSA" ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" class="mt-2 mb-4" id="printPage" />
+</a>
+<RadzenButton Text="STAMPA" ButtonStyle="ButtonStyle.Primary" Icon="add_circle_outline" class="mt-2 mb-4" id="printPage" Click="@PrintMe" />
+
+@if (Models == null)
+{
+    <div class="alert alert-info">Caricando...</div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var item in Models)
+            {
+                <tr>
+                    <td>@item.Nome</td>
+                    <td>@item.Categoria</td>
+                    <td>@item.Stato</td>
+                    <td>
+                        <a href="/risorse/edit/@item.Id" id="printPage">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" id="printPage" />
+                        </a>
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1" id="printPage" Click="@((args) => DeleteAsync(item.Id))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    public List<Risorsa> Models { get; set; } = new(); // Al posto di new List<Customer>()
+
+    protected override async Task OnInitializedAsync()
+    {
+        var dati = await repoRisorsa.GetAsync();
+        Models = dati.ToList();
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        var item = Models.First(m => m.Id == id);
+        var confirm = await js.InvokeAsync<bool>("confirm", "Vuoi cancellare " + item.Nome + " " + item.Categoria + "?");
+
+        if(confirm)
+        {
+            await repoRisorsa.DeleteAsync(item);
+            await OnInitializedAsync();
+        }
+    }
+
+    private async Task PrintMe()
+    {
+        await js.InvokeVoidAsync("window.print");
+    }
+}

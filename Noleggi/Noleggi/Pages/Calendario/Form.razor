@@ -1,0 +1,101 @@
+﻿@inject DialogService DialogService
+@inject IRisorsaRepository repoRisorsa
+@inject IClienteRepository repoCliente
+@inject INoleggioRepository repoNoleggio
+@inject IPeriodicitaRepository repoPeriodicita
+@inject IPeriodicitaRisorsaRepository repoPR
+
+<RadzenTemplateForm TItem="Noleggio" Data="@Model" Submit="@OnSubmit">
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Cliente" />
+        </div>
+        <div class="col">
+            <RadzenDropDown @bind-Value=@Model.ClienteId Name="Cliente" Data=@Clienti TextProperty="Email" ValueProperty="Id" Placeholder="-- seleziona cliente" Style="width: 100%; max-width: 400px;" />
+            <RadzenRequiredValidator Text="Cliente richiesto" Component="Cliente" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Risorsa" />
+        </div>
+        <div class="col">
+            <RadzenDropDown @bind-Value=@Model.RisorsaId Name="Risorsa" Data=@Risorse TextProperty="Nome" ValueProperty="Id" Placeholder="-- seleziona risorsa" Style="width: 100%; max-width: 400px;" />
+            <RadzenRequiredValidator Text="Risorsa richiesta" Component="Risorsa" Popup="true" />
+        </div>
+    </div>
+
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Durata" />
+        </div>
+        <div class="col">
+            <RadzenDropDown @bind-Value=@Model.PeriodicitaId Data=@Periodi Name="Durata" TextProperty="Durata" ValueProperty="Id" Placeholder="-- seleziona durata" Style="width: 100%; max-width: 400px;" />
+            <RadzenRequiredValidator Text="Durata richiesta" Component="Durata" Popup="true" />
+        </div>
+    </div>
+
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Data di ritiro" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker DateFormat="dd/MM/yyyy" @bind-Value=@Model.DataRitiro Name="DataRitiro" ShowTime="false" />
+            <RadzenRequiredValidator Text="Data di ritiro richiesta" Component="DataRitiro" Popup="true" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Data di fine" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker DateFormat="dd/MM/yyyy" @bind-Value=@Model.DataFineNoleggio Name="DataFineNoleggio" ShowTime="false" />
+            <RadzenRequiredValidator Text="Data di fine richiesta" Component="DataFineNoleggio" Popup="true" />
+            <RadzenCompareValidator Operator="CompareOperator.GreaterThan" Value=@Model.DataRitiro Component="DataFineNoleggio" Text="La data di fine non può essere minore della data di ritiro" Style="display:block" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Data di consegna" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker DateFormat="dd/MM/yyyy" @bind-Value=@Model.DataConsegnaEffettiva ShowTime="false" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+@code {
+    [Parameter] public Noleggio Model { get; set; } = new();
+    
+    [Parameter] public DateTime DataInizio { get; set; }
+    [Parameter] public DateTime DataFine { get; set; }
+
+    public List<Risorsa> Risorse { get; set; }
+    public List<Cliente> Clienti { get; set; }
+    public List<Periodicita> Periodi { get; set; } = new();
+    public List<PeriodicitaRisorsa> PR { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        // Recupero dei dati
+        Risorse = (await repoRisorsa.GetAsync()).ToList();
+        Clienti = (await repoCliente.GetAsync()).ToList();  
+        Periodi = (await repoPeriodicita.GetAsync()).ToList();
+        PR = (await repoPR.GetAsync()).ToList();
+    }
+    protected override void OnParametersSet()
+    {
+        DataInizio = Model.DataRitiro;
+        DataFine = Model.DataConsegnaEffettiva;
+    }
+
+    public void OnSubmit(Noleggio noleggio)
+    {
+        DialogService.Close(noleggio);
+    }
+}

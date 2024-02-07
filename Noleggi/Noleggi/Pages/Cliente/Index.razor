@@ -1,0 +1,167 @@
+﻿@page "/clienti"
+@inject IClienteRepository repoCliente
+@inject IJSRuntime js
+
+<h1 style="text-align: center"><span style="font-weight: bold;">CLIENTI</span></h1>
+<hr style="height:4px;border-width:0;color:gray;background-color:gray" />
+<br />
+
+<RadzenButton Text="NUOVO CLIENTE" ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" class="mt-2 mb-4" id="printPage" Click="@InsertRowAsync" Disabled=@(addButtonEnable == true) />
+<RadzenButton Text="STAMPA" ButtonStyle="ButtonStyle.Primary" Icon="add_circle_outline" class="mt-2 mb-4" id="printPage"  Click="@PrintMe" />
+<RadzenDataGrid @ref="clientiGrid" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" Data="@Models" TItem="Cliente" 
+                RowUpdate="@OnUpdateRowAsync" RowCreate="@OnCreateRowAsync" ColumnWidth="150px">
+    <Columns>
+        <RadzenDataGridColumn TItem="Cliente" Property="Nome" Title="Nome">
+            <EditTemplate Context="cliente">
+                <RadzenTextBox @bind-Value="cliente.Nome" Name="Nome" Style="width:100%; display: block" />
+                <RadzenRequiredValidator Text="Nome richiesto" Component="Nome" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Property="Cognome" Title="Cognome">
+            <EditTemplate Context="cliente">
+                <RadzenTextBox @bind-Value="cliente.Cognome" Name="Cognome" Style="width:100%; display: block" />
+                <RadzenRequiredValidator Text="Cognome richiesto" Component="Cognome" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Property="DataNascita" Title="Data di nascita" >
+            <Template Context="cliente">
+                @String.Format("{0:d}", cliente.DataNascita)
+            </Template>
+            <EditTemplate Context="cliente">
+                <RadzenDatePicker @bind-Value="cliente.DataNascita" Name="DataNascita" Style="width:100%" ShowTime="false" />
+                <RadzenRequiredValidator Text="Data di nascita richiesta" Component="DataNascita" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Property="Indirizzo" Title="Indirizzo" >
+            <EditTemplate Context="cliente">
+                <RadzenTextBox @bind-Value="cliente.Indirizzo" Name="Indirizzo" Style="width:100%; display: block" />
+                <RadzenRequiredValidator Text="Indirizzo richiesto" Component="Indirizzo" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Property="Numero" Title="Numero" >
+            <EditTemplate Context="cliente">
+                <RadzenTextBox @bind-Value="cliente.Numero" Style="width:100%; display: block" Name="Numero" MaxLength="12" Mi />
+                <RadzenRequiredValidator Text="Numero richiesto" Component="Numero" Popup="true" />
+                <RadzenLengthValidator Text="Il numero deve contenere 12 cifre, prefisso compreso!" Component="Numero" Popup="true" Min="12" Max="12" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Property="Email" Title="Email" Width="200px">
+            <EditTemplate Context="cliente">
+                <RadzenTextBox @bind-Value="cliente.Email" Name="Email" Style="width:100%; display: block" />
+                <RadzenRequiredValidator Text="Email richiesto" Component="Email" Popup="true" />
+                <RadzenEmailValidator Component="Email" Text="Inserisci l'email" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Cliente" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+            <Template Context="cliente" >
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" id="printPage" Click="@(args => EditRowAsync(cliente))" @onclick:stopPropagation="true" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1" id="printPage" Click="@(args => DeleteAsync(cliente))" @onclick:stopPropagation="true" />
+            </Template>
+            <EditTemplate Context="cliente">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" id="printPage" Click="@((args) => SaveRowAsync(cliente))" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="my-1 ms-1" id="printPage" Click="@((args) => CancelEdit(cliente))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+    </Columns>
+</RadzenDataGrid>
+
+
+@code {
+    public List<Cliente> Models { get; set; } = new();
+    public Cliente Model { get; set; }
+
+    RadzenDataGrid<Cliente> clientiGrid;
+
+    bool addButtonEnable = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var dati = await repoCliente.GetAsync();
+        Models = dati.ToList();
+    }
+
+    async Task EditRowAsync(Cliente cliente)
+    {
+        Model = cliente;
+        await clientiGrid.EditRow(Model);
+        addButtonEnable = true;
+    }
+    async Task InsertRowAsync()
+    {
+        Model = new Cliente();
+        await clientiGrid.InsertRow(Model);
+        addButtonEnable = true;
+    }
+
+    async Task SaveRowAsync(Cliente cliente)
+    {
+        await clientiGrid.UpdateRow(cliente);
+    }
+
+    void CancelEdit(Cliente cliente)
+    {
+        clientiGrid.CancelEditRow(cliente);
+        addButtonEnable = false;
+    }
+    private async Task OnUpdateRowAsync()
+    {
+        await repoCliente.UpdateAsync(Model);
+        addButtonEnable = false;
+    }
+
+    private async Task OnCreateRowAsync()
+    {
+        if (await VerifyClientExists(Model))
+        {
+            await repoCliente.InsertAsync(Model);
+            addButtonEnable = false;
+        }
+    }
+
+    private async Task DeleteAsync(Cliente cliente)
+    {
+        if (Models.Contains(cliente))
+        {
+            var confirm = await js.InvokeAsync<bool>("confirm", "Vuoi cancellare " + cliente.Nome + " " + cliente.Cognome + "?");
+
+            if (confirm)
+            {
+                await repoCliente.DeleteAsync(cliente);
+                await OnInitializedAsync();
+                await clientiGrid.Reload();
+            }
+        }
+        else
+        {
+            clientiGrid.CancelEditRow(Model);
+            await clientiGrid.Reload();
+        }
+    }
+
+    private async Task<bool> VerifyClientExists(Cliente newClient)
+    {
+        IEnumerable<Cliente> allClient = await repoCliente.GetAsync();
+        foreach (Cliente client in allClient)
+        {
+
+            if (newClient.Email.Equals(client.Email))
+            {
+                await js.InvokeVoidAsync("alert", "Non puoi creare il seguente cliente, un cliente con questa email: " + newClient.Email + " è già esistente!");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private async Task PrintMe()
+    {
+        await js.InvokeVoidAsync("window.print");
+    }
+}

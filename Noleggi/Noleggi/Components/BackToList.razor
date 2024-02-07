@@ -1,0 +1,12 @@
+﻿@inject NavigationManager nm
+
+<RadzenButton Class="btn btn-success" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Large" Icon="refresh" Text="BACK" Click="@NavigateToList" />
+
+@code {
+    [Parameter] public string Target { get; set; }
+
+    void NavigateToList()
+    {
+        nm.NavigateTo($"{nm.BaseUri}{Target}");
+    }
+}

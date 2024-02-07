@@ -1,0 +1,37 @@
+﻿<RadzenTemplateForm Data="@Model" OnInvalidSubmit="@OnValidSubmit">
+    <RadzenRow Gap="2rem" Class="rz-p-0 rz-p-lg-4" JustifyContent="JustifyContent.Center">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenFieldset Text="Dati Cliente">
+                <RadzenStack Gap="1rem">
+
+                    <RadzenRow AlignItems="AlignItems.Center">
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenLabel Text="Nome" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="8">
+                            <RadzenTextBox Style="width: 100%;" Name="Nome" @bind-Value="@Model.Nome" />
+                            <RadzenRequiredValidator Text="Nome richiesto" Component="Nome" Popup="true" />
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                    <RadzenRow AlignItems="AlignItems.Center">
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenLabel Text="Categoria" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="8">
+                            <RadzenTextBox Style="width: 100%;" Name="Categoria" @bind-Value="@Model.Categoria" />
+                            <RadzenRequiredValidator Text="Categoria richiesta" Component="Categoria" Popup="true" />
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                </RadzenStack>
+            </RadzenFieldset>
+        </RadzenColumn>
+    </RadzenRow>
+<Noleggi.Pages.PR.Edit RisorsaId="@Model.Id"/>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public Risorsa Model { get; set; }
+    [Parameter] public EventCallback OnValidSubmit { get; set; }
+}

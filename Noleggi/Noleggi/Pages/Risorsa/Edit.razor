@@ -1,0 +1,32 @@
+﻿@page "/risorse/edit/{id:int}"
+@inject IRisorsaRepository repoRisorsa
+@inject NavigationManager nm
+
+
+<h1 style="text-align: center"><span style="font-weight: bold;">MODIFICA DI UNA RISORSA</span></h1>
+<br />
+<br />
+<br />
+
+<Form Model="@Model" />
+
+<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="2rem" Class="rz-p-0 rz-p-lg-4">
+    <RadzenButton Class="btn btn-success" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="save" Text="SAVE" Click="@UpdateAsync" />
+    <BackToList Target="risorse" />
+</RadzenStack>
+
+@code {
+    public Risorsa Model { get; set; } = new();
+    [Parameter] public int Id { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Model = await repoRisorsa.GetAsync(Id);
+    }
+
+    private async Task UpdateAsync()
+    {
+        await repoRisorsa.UpdateAsync(Model);
+        nm.NavigateTo("/risorse");
+    }
+}

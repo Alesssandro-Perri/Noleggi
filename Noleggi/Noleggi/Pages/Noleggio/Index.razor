@@ -1,0 +1,313 @@
+﻿@page "/noleggi"
+@using Microsoft.VisualBasic;
+@inject INoleggioRepository repoNoleggio
+@inject IRisorsaRepository repoRisorsa
+@inject IClienteRepository repoCliente
+@inject IPeriodicitaRepository repoPeriodicita
+@inject IPeriodicitaRisorsaRepository repoPR
+@inject IJSRuntime js
+@inject NavigationManager nm
+
+<h1 style="text-align: center"><span style="font-weight: bold;">NOLEGGI</span></h1>
+<hr style="height:4px;border-width:0;color:gray;background-color:gray" />
+<br />
+
+<RadzenButton Text="NUOVO NOLEGGIO" ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" class="mt-2 mb-4" Click="@InsertRowAsync" Disabled=@(addButtonEnable == true) />
+<RadzenDataGrid @ref="noleggiGrid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" EditMode="DataGridEditMode.Single"
+                Data="@Models" TItem="Noleggio" RowUpdate="@OnUpdateRowAsync" RowCreate="@OnCreateRowAsync" ColumnWidth="160px">
+    <Columns>
+        <RadzenDataGridColumn TItem="Noleggio" Property="Cliente.Email" Title="Cliente" Width="230px">
+            <EditTemplate Context="noleggio">
+                <RadzenDropDown @bind-Value=@Model.ClienteId Data=@Clienti Name="Cliente" TextProperty="Email" ValueProperty="Id" Placeholder="-- seleziona cliente" Disabled=@(disabilitaModifiy == true) Style="width:100%; display: block;" />
+                <RadzenRequiredValidator Text="Cliente richiesto" Component="Cliente" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="Risorsa.Nome" Title="Risorsa" Width="150px">
+            <EditTemplate Context="noleggio">
+                <RadzenDropDown @bind-Value=@Model.RisorsaId Data=@Risorse Name="Risorsa" TextProperty="Nome" ValueProperty="Id" Placeholder="-- seleziona risorsa" Disabled=@(disabilitaModifiy == true) Style="width: 100%; max-width: 400px;" />
+                <RadzenRequiredValidator Text="Risorsa richiesta" Component="Risorsa" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="Periodicita.Durata" Title="Durata" Width="150px">
+            <EditTemplate Context="noleggio">
+                <RadzenDropDown @bind-Value=@Model.PeriodicitaId Data=@Periodi Name="Durata" TextProperty="Durata" ValueProperty="Id" Placeholder="-- seleziona durata" Style="width: 100%; max-width: 400px;" />
+                <RadzenRequiredValidator Text="Durata richiesta" Component="Durata" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="DataRitiro" Title="Data ritiro">
+            <Template Context="noleggio">
+                @String.Format("{0:d}", noleggio.DataRitiro)
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenDatePicker @bind-Value="noleggio.DataRitiro" Name="DataRitiro" Style="width:100%" ShowTime="false" />
+                <RadzenRequiredValidator Text="Data di ritiro richiesta" Component="DataRitiro" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="DataFineNoleggio" Title="Data fine">
+            <Template Context="noleggio">
+                @String.Format("{0:d}", noleggio.DataFineNoleggio)
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenDatePicker @bind-Value="noleggio.DataFineNoleggio" Name="DataFineNoleggio" Style="width:100%" ShowTime="false" Disabled=@(disabilitaModifiy == true) />
+                <RadzenRequiredValidator Text="Data di fine richiesta" Component="DataFineNoleggio" Popup="true" />
+                <RadzenCompareValidator Operator="CompareOperator.GreaterThan" Value=@Model.DataRitiro Component="DataFineNoleggio" Text="La data di fine non può essere minore della data di ritiro" Style="display:block" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="DataConsegnaEffettiva" Title="Data consegna">
+            <Template Context="noleggio">
+                @String.Format("{0:d}", noleggio.DataConsegnaEffettiva)
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenDatePicker @bind-Value="noleggio.DataConsegnaEffettiva" Name="DataConsegnaEffettiva" Style="width:100%" ShowTime="false" Disabled=@(disabilitaCreate == true) />
+                <RadzenCompareValidator Operator="CompareOperator.GreaterThan" Value=@Model.DataRitiro Component="DataFineNoleggio" Text="La data di fine non può essere minore della data di ritiro" Style="display:block" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="CostoEffettivo" Title="Costo" Width="100px" >
+            <Template Context="noleggio">
+                @String.Format(new System.Globalization.CultureInfo("it-CH"), "{0:C}", noleggio.CostoEffettivo)
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenNumeric TValue="double" Format="c" Min="0" @bind-Value="noleggio.CostoEffettivo" Name="CostoEffettivo" Style="width:100%" Disabled=@(disabilitaCreate == true) />
+                <RadzenRequiredValidator Text="Costo effettivo richiesto" Component="CostoEffettivo" Popup="true" />
+
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Property="CostoTotale" Title="Costo totale">
+            <Template Context="noleggio">
+                @String.Format(new System.Globalization.CultureInfo("it-CH"), "{0:C}", noleggio.CostoTotale)
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenNumeric TValue="double" Format="c" Min="0" @bind-Value="noleggio.CostoTotale" Name="CostoTotale" Style="width:100%" Disabled=@(disabilitaCreate == true) />
+                <RadzenRequiredValidator Text="Costo totale richiesto" Component="CostoTotale" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="Noleggio" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="90px">
+            <Template Context="noleggio">
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="edit" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRowAsync(noleggio))" @onclick:stopPropagation="true" />
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1" Click="@(args => DeleteAsync(noleggio))" @onclick:stopPropagation="true" />
+            </Template>
+            <EditTemplate Context="noleggio">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRowAsync(noleggio))" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="my-1 ms-1" Click="@((args) => CancelEdit(noleggio))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+
+    public List<Noleggio> Models { get; set; } = new();
+    public Noleggio Model { get; set; }
+
+    public Risorsa ModelRisorsa { get; set; } = new();
+    public PeriodicitaRisorsa ModelPR { get; set; } = new();
+
+    RadzenDataGrid<Noleggio> noleggiGrid = new();
+
+    public List<Risorsa> Risorse { get; set; } = new();
+    public List<Cliente> Clienti { get; set; } = new();
+    public List<Periodicita> Periodi { get; set; } = new();
+    public List<PeriodicitaRisorsa> PR { get; set; } = new();
+
+    bool addButtonEnable = false; //Valore che serve per attivare e disabilitare il bottone di aggiunta
+    bool disabilitaCreate; //Disabilita alla creazione il costo effettivo e la data effettiva di consegna
+    bool disabilitaModifiy; //Disabilita alla modifica
+
+    double days = 0; //Valore per prendere la differenza di giorni e fare il costo totale
+
+    protected override async Task OnInitializedAsync()
+    {
+        var dati = await repoNoleggio.GetAsync();
+        Models = dati.ToList();
+
+        Risorse = (await repoRisorsa.GetAsync()).ToList();
+        Clienti = (await repoCliente.GetAsync()).ToList();
+        Periodi = (await repoPeriodicita.GetAsync()).ToList();
+        PR = (await repoPR.GetAsync()).ToList();
+
+        addButtonEnable = false;
+    }
+
+    async Task EditRowAsync(Noleggio noleggio) //Metodo che parte al click del bottone di modifica
+    {
+        Model = noleggio;
+        await noleggiGrid.EditRow(Model);
+
+        disabilitaModifiy = true;
+        disabilitaCreate = false;
+        addButtonEnable = true;
+
+    }
+    async Task InsertRowAsync() //Metodo che parte al click del bottone crea
+    {
+        Model = new Noleggio();
+        await noleggiGrid.InsertRow(Model);
+
+        disabilitaCreate = true;
+        addButtonEnable = true;
+
+    }
+
+    async Task SaveRowAsync(Noleggio noleggio) //Metodo che parte al click del bottone salva
+    {   
+        await noleggiGrid.UpdateRow(noleggio);
+        days = noleggio.DataConsegnaEffettiva.Subtract(noleggio.DataRitiro).Days + 1;
+        foreach (var item in Periodi)
+        {
+            //Errore nel calcolo
+            if (Model.PeriodicitaId == item.Id)
+            {
+                if (item.Durata == "Giornaliera")
+                {
+                    days = noleggio.DataConsegnaEffettiva.Subtract(noleggio.DataRitiro).Days + 1;
+                }
+                else if (item.Durata == "Settimanale")
+                {
+                    days = (noleggio.DataConsegnaEffettiva.Subtract(noleggio.DataRitiro).Days) / 7;
+                }
+                else if (item.Durata == "Mensile")
+                {
+                    days = (noleggio.DataConsegnaEffettiva.Subtract(noleggio.DataRitiro).Days) / 30;
+                }
+                else if (item.Durata == "Annuale")
+                {
+                    days = (noleggio.DataConsegnaEffettiva.Subtract(noleggio.DataRitiro).Days) / 360;
+                }
+            }
+            noleggio.CostoTotale = noleggio.CostoEffettivo * (days + 1);
+        }
+    }
+
+    void CancelEdit(Noleggio noleggio) //Metodo che parte al click del bottone cancella (X)
+    {
+        noleggiGrid.CancelEditRow(noleggio);
+        addButtonEnable = false;
+    }
+
+    private async Task OnUpdateRowAsync() //Metodo che parte quando salvo una modifica
+    {
+        if (await VerifyNoleggioExists(Model))
+        {
+            await repoNoleggio.UpdateAsync(Model);
+            
+            foreach (var item in PR)
+            {
+                if (Model.RisorsaId == item.RisorsaId)
+                {
+                    if (Model.PeriodicitaId == item.PeriodicitaId)
+                    {
+                        Model.CostoTeorico = item.Costo;
+                    }
+
+                }
+            }
+            Model.CostoEffettivo = Model.CostoTeorico;
+            Model.NomeNoleggio = Model.Cliente.Email + " - " + Model.Risorsa.Nome;
+
+            disabilitaModifiy = false;
+            disabilitaCreate = false;
+            addButtonEnable = false;
+        }
+    }
+
+    private async Task OnCreateRowAsync() //Metodo che parte quando salvo un nuovo valore
+    {
+        if (await VerifyNoleggioExists(Model))
+        {
+            Model.DataFineNoleggio = Model.DataFineNoleggio.AddHours(1);
+            Model.DataConsegnaEffettiva = Model.DataFineNoleggio;
+            await repoNoleggio.InsertAsync(Model);
+
+            Model.NomeNoleggio = Model.Cliente.Email + " - " + Model.Risorsa.Nome;
+
+            ModelRisorsa = await repoRisorsa.GetAsync(Model.RisorsaId);
+            ModelRisorsa.Stato = "In noleggio";
+
+            foreach (var item in PR)
+            {
+                if (Model.RisorsaId == item.RisorsaId)
+                {
+                    if (Model.PeriodicitaId == item.PeriodicitaId)
+                    {
+                        Model.CostoTeorico = item.Costo;
+                    }
+
+                }
+            }
+            Model.CostoEffettivo= Model.CostoTeorico;
+            await repoRisorsa.UpdateAsync(ModelRisorsa);
+
+            disabilitaCreate = false;
+            disabilitaModifiy = false;
+            addButtonEnable = false;
+        }
+        else
+        {
+            noleggiGrid.CancelEditRow(Model);           
+        }
+    }
+
+    private async Task DeleteAsync(Noleggio noleggio)
+    {
+
+        if (Models.Contains(noleggio))
+        {
+            var confirm = await js.InvokeAsync<bool>("confirm", "Vuoi cancellare il noleggio numero " + noleggio.Id + "?");
+
+            if (confirm)
+            {
+                ModelRisorsa = await repoRisorsa.GetAsync(noleggio.RisorsaId);
+                ModelRisorsa.Stato = "Disponibile";
+                await repoRisorsa.UpdateAsync(ModelRisorsa);
+
+                await repoNoleggio.DeleteAsync(noleggio);
+                await OnInitializedAsync();
+                await noleggiGrid.Reload();
+            }
+        }
+        else
+        {
+            noleggiGrid.CancelEditRow(Model);
+            await noleggiGrid.Reload();
+        }
+    }
+
+    private async Task<bool> VerifyNoleggioExists(Noleggio newNoleggio)
+    {
+        IEnumerable<Noleggio> allNoleggi = await repoNoleggio.GetAsync();
+        foreach (Noleggio noleggio in allNoleggi)
+        {
+            ModelRisorsa = await repoRisorsa.GetAsync(Model.RisorsaId);
+            if (ModelRisorsa.Stato.Equals("Disponibile"))
+            {
+                return true;
+            }
+            else
+            {
+                if (newNoleggio.RisorsaId == noleggio.RisorsaId && newNoleggio.Id != noleggio.Id)//Controllo se un noleggio con questa risorsa c'è già
+                {
+                    if (newNoleggio.DataRitiro <= noleggio.DataConsegnaEffettiva) //Controllo se la data di noleggio inserita è disponibile
+                    {
+                        await js.InvokeVoidAsync("alert", "Non puoi creare il seguente noleggio, un noleggio con questa risorsa è già esistente!");
+                        addButtonEnable = false;
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    } 
+                }
+            }
+        }
+        return true;
+    }
+}

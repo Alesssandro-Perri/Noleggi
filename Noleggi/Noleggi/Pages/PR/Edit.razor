@@ -1,0 +1,116 @@
+﻿@page "/pr/edit/{risorsaid:int}"
+@inject IPeriodicitaRisorsaRepository repo
+@inject IRisorsaRepository repoRisorsa
+@inject IPeriodicitaRepository repoPeriodicita
+@inject NavigationManager nm
+@inject IJSRuntime js
+
+<br />
+<RadzenDataGrid @ref="prGrid" AllowAlternatingRows="false" AllowFiltering="true" AllowPaging="true" PageSize="5" AllowSorting="true" EditMode="DataGridEditMode.Single"
+                Data="@Models" TItem="PeriodicitaRisorsa" RowUpdate="@OnUpdateRowAsync" RowCreate="@OnCreateRowAsync" ColumnWidth="150px">
+    <Columns>
+        <RadzenDataGridColumn TItem="PeriodicitaRisorsa" Property="Periodicita.Durata" Title="Durata">
+            <EditTemplate Context="pr">
+                <RadzenTextBox @bind-Value="pr.Periodicita.Durata" Name="Durata" Style="width:100%; display: block" Disabled="true" />
+                <RadzenRequiredValidator Text="Durata richiesta" Component="Durata" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="PeriodicitaRisorsa" Property="Costo" Title="Costo">
+            <Template Context="pr">
+                @String.Format(new System.Globalization.CultureInfo("it-CH"), "{0:C}", pr.Costo)
+            </Template>
+            <EditTemplate Context="pr">
+                <RadzenNumeric TValue="double" Format="c" Min="0" @bind-Value="pr.Costo" Name="Costo" Style="width:100%" />
+                <RadzenRequiredValidator Text="Costo richiesto" Component="Costo" Popup="true" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="PeriodicitaRisorsa" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+            <Template Context="pr">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" id="printPage" Click="@(args => EditRowAsync(pr))" @onclick:stopPropagation="true" />
+            </Template>
+            <EditTemplate Context="pr">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" id="printPage" Click="@((args) => SaveRowAsync(pr))" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="my-1 ms-1" id="printPage" Click="@((args) => CancelEdit(pr))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+    </Columns>
+</RadzenDataGrid>
+
+
+@code {
+    public PeriodicitaRisorsa Model { get; set; } = new();
+    public List<PeriodicitaRisorsa> Models { get; set; }
+    [Parameter] public int RisorsaId { get; set; }
+
+    RadzenDataGrid<PeriodicitaRisorsa> prGrid;
+
+    public List<Periodicita> Periodi { get; set; } = new();
+
+    bool addButtonEnable = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Models = (await repo.GetRisorsaAsync(RisorsaId)).ToList();
+
+        Periodi = (await repoPeriodicita.GetAsync()).ToList();
+    }
+
+    async Task EditRowAsync(PeriodicitaRisorsa pr)
+    {
+        Model = pr;
+        await prGrid.EditRow(Model);
+        addButtonEnable = true;
+    }
+    async Task InsertRowAsync()
+    {
+        Model = new PeriodicitaRisorsa();
+        await prGrid.InsertRow(Model);
+        addButtonEnable = true;
+    }
+
+    async Task SaveRowAsync(PeriodicitaRisorsa pr)
+    {
+        await prGrid.UpdateRow(pr);
+    }
+
+    void CancelEdit(PeriodicitaRisorsa pr)
+    {
+        prGrid.CancelEditRow(pr);
+        addButtonEnable = false;
+    }
+    private async Task OnUpdateRowAsync()
+    {
+        await repo.UpdateAsync(Model);
+        addButtonEnable = false;
+    }
+
+    private async Task OnCreateRowAsync()
+    {
+            await repo.InsertAsync(Model);
+            addButtonEnable = false;
+    }
+
+    private async Task DeleteAsync(PeriodicitaRisorsa pr)
+    {
+
+        if (Models.Contains(pr))
+        {
+            var confirm = await js.InvokeAsync<bool>("confirm", "Vuoi cancellare " + pr.RisorsaId + "?");
+
+            if (confirm)
+            {
+                await repo.DeleteAsync(pr);
+                await OnInitializedAsync();
+                await prGrid.Reload();
+            }
+        }
+        else
+        {
+            prGrid.CancelEditRow(Model);
+            await prGrid.Reload();
+        }
+    }
+}

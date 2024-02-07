@@ -1,0 +1,176 @@
+﻿@page "/calendar"
+@inject DialogService DialogService
+@inject INoleggioRepository repoNoleggio
+@inject IRisorsaRepository repoRisorsa
+@inject IPeriodicitaRisorsaRepository repoPR
+@inject IJSRuntime js
+
+<h1 style="text-align: center"><span style="font-weight: bold;">CALENDARIO</span></h1>
+<hr style="height:4px;border-width:0;color:gray;background-color:gray" />
+<br />
+
+<RadzenScheduler @ref=@scheduler style="height: 600px;" TItem="Noleggio" Data=@Models SelectedIndex="2" TextProperty="NomeNoleggio" 
+                 StartProperty="DataRitiro" EndProperty="DataConsegnaEffettiva" SlotRender=@OnSlotRender AppointmentSelect=@NoleggioSelezionato SlotSelect=@CasellaVuotaSelezionata>
+    <RadzenDayView />
+    <RadzenWeekView />
+    <RadzenMonthView />
+    <RadzenYearView />
+</RadzenScheduler>
+
+@code {
+    public List<Noleggio> Models { get; set; } = new();
+    public List<PeriodicitaRisorsa> PR { get; set; } = new();
+
+    RadzenScheduler<Noleggio> scheduler;
+    Dictionary<DateTime, string> events = new Dictionary<DateTime, string>();
+
+    public Noleggio Model { get; set; }
+    public Risorsa ModelRisorsa { get; set; } = new();
+
+    double days = 0;
+
+    protected async override Task OnInitializedAsync()
+    {
+        // Recupero dei dati
+        var dati = await repoNoleggio.GetAsync();
+        Models = dati.ToList();
+        PR = (await repoPR.GetAsync()).ToList();
+    }
+
+    void OnSlotRender(SchedulerSlotRenderEventArgs args) //Metodo per cambiare colore alla casella del giorno attuale
+    {
+        // Highlight today in month view
+        if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
+        {
+            args.Attributes["style"] = "background: rgba(255,220,40,.2);";
+        }
+
+        // Highlight working hours (9-18)
+        if ((args.View.Text == "Week" || args.View.Text == "Day") && args.Start.Hour > 8 && args.Start.Hour < 19)
+        {
+            args.Attributes["style"] = "background: rgba(255,220,40,.2);";
+        }
+    }
+
+    async Task CasellaVuotaSelezionata(SchedulerSlotSelectEventArgs args)
+    {
+        if (args.View.Text != "Year")
+        {
+            Noleggio data = await DialogService.OpenAsync<Form>("Nuovo Noleggio", new Dictionary<string, object> { { "DataInizio", args.Start }, { "DataFine", args.End } }); //Sono i parametri richiesti nel form ovvero le 2 date di default dello scheduler //OpenAsync vuole un dictionary
+            Model = data;
+            if (data != null)
+            {
+                if (await VerifyNoleggioExists(data))
+                {
+                    Models.Add(data);
+
+                    Model.DataFineNoleggio = Model.DataFineNoleggio.AddHours(1);
+                    Model.DataConsegnaEffettiva = Model.DataFineNoleggio;
+                    
+                    
+                    await repoNoleggio.InsertAsync(Model);
+
+                    Model.NomeNoleggio = Model.Cliente.Email + " - " + Model.Risorsa.Nome;
+
+                    ModelRisorsa = await repoRisorsa.GetAsync(Model.RisorsaId);
+                    ModelRisorsa.Stato = "In noleggio";
+
+                    days = Model.DataConsegnaEffettiva.Subtract(Model.DataRitiro).Days;
+
+                    foreach (var item in PR)
+                    {
+                        if (Model.RisorsaId == item.RisorsaId)
+                        {
+                            if (Model.PeriodicitaId == item.PeriodicitaId)
+                            {
+                                Model.CostoTeorico = item.Costo;
+                            }
+                        }
+                    }
+                    Model.CostoEffettivo = Model.CostoTeorico;
+                    Model.CostoTotale = Model.CostoEffettivo * (days + 1);
+
+                    await repoRisorsa.UpdateAsync(ModelRisorsa);
+                    await scheduler.Reload();
+                }
+            }
+        }
+    }
+
+    async Task NoleggioSelezionato(SchedulerAppointmentSelectEventArgs<Noleggio> args)
+    {
+        var copy = new Noleggio
+            {
+                Id = args.Data.Id,
+                ClienteId = args.Data.ClienteId,
+                RisorsaId = args.Data.RisorsaId,
+                PeriodicitaId = args.Data.PeriodicitaId,
+                DataRitiro = args.Start,
+                DataFineNoleggio = args.End,
+                DataConsegnaEffettiva = args.Data.DataConsegnaEffettiva,
+                CostoEffettivo = args.Data.CostoEffettivo,
+                NomeNoleggio = args.Data.NomeNoleggio
+            };
+
+        Noleggio data = await DialogService.OpenAsync<Edit>("Modifica Noleggio", new Dictionary<string, object> { { "ModelNoleggio", copy } }); //ModelNoleggio è il nome del parametro che richiedo all'interno del file Edit
+        Model = data;
+        if (data != null)
+        {
+            Noleggio noleggioToModify = await repoNoleggio.GetAsync(data.Id);
+            noleggioToModify.ClienteId = data.ClienteId;
+            noleggioToModify.RisorsaId = data.RisorsaId;
+            noleggioToModify.PeriodicitaId = data.PeriodicitaId;
+            noleggioToModify.DataRitiro = data.DataRitiro;
+            noleggioToModify.DataFineNoleggio = data.DataFineNoleggio;
+            noleggioToModify.DataConsegnaEffettiva = data.DataConsegnaEffettiva;
+            noleggioToModify.CostoEffettivo = data.CostoEffettivo;
+            
+            foreach (var item in PR)
+            {
+                if (Model.RisorsaId == item.RisorsaId)
+                {
+                    if (Model.PeriodicitaId == item.PeriodicitaId)
+                    {
+                        Model.CostoTeorico = item.Costo;
+                    }
+                }
+            }
+            Model.CostoEffettivo = Model.CostoTeorico;
+            Model.CostoTotale = Model.CostoEffettivo * (days + 1);
+
+            await repoNoleggio.UpdateAsync(noleggioToModify);
+            noleggioToModify.NomeNoleggio = noleggioToModify.Cliente.Email + " - " + noleggioToModify.Risorsa.Nome;  
+        }
+
+        await scheduler.Reload();
+    }
+
+    private async Task<bool> VerifyNoleggioExists(Noleggio newNoleggio)
+    {
+        IEnumerable<Noleggio> allNoleggi = await repoNoleggio.GetAsync();
+        foreach (Noleggio noleggio in allNoleggi)
+        {
+            ModelRisorsa = await repoRisorsa.GetAsync(Model.RisorsaId);
+            if (ModelRisorsa.Stato.Equals("Disponibile"))
+            {
+                return true;
+            }
+            else
+            {
+                if (newNoleggio.RisorsaId == noleggio.RisorsaId)
+                {
+                    if (newNoleggio.DataRitiro <= noleggio.DataConsegnaEffettiva)
+                    {
+                        await js.InvokeVoidAsync("alert", "Non puoi creare il seguente noleggio, un noleggio con questa risorsa è già esistente!");
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+}

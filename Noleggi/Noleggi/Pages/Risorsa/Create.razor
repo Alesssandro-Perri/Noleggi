@@ -1,0 +1,29 @@
+﻿@page "/risorse/create"
+@inject IRisorsaRepository repoRisorsa
+@inject IPeriodicitaRisorsaRepository repoPR
+@inject IPeriodicitaRepository repoP
+@inject NavigationManager nm
+
+<h1 style="text-align: center"><span style="font-weight: bold;">CREAZIONE DI UNA NUOVA RISORSA</span></h1>
+<br />
+<br />
+<br />
+
+<Form Model="@Model" />
+
+<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="2rem" Class="rz-p-0 rz-p-lg-4">
+    <RadzenButton Class="btn btn-success" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="save" Text="SAVE" Click="@InsertAsync" />
+    <BackToList Target="risorse" />
+</RadzenStack>
+
+@code {
+    public Risorsa Model { get; set; } = new();
+
+    private async Task InsertAsync()
+    {
+        await repoRisorsa.InsertAsync(Model);
+        await repoPR.InsertRisorsaAsync(Model.Id, repoP);
+        
+        nm.NavigateTo("/risorse");
+    }
+}
